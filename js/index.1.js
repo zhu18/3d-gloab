@@ -1,4 +1,6 @@
-const CITY_RADIUS = 100,
+
+
+var CITY_RADIUS = 100,
     CITY_MARGIN = 1,
     BLINT_SPEED = 0.05,
     HEXAGON_RADIUS = 1,
@@ -7,9 +9,15 @@ const CITY_RADIUS = 100,
     earthFrameColor = 0x03d98e,
     pointsRows = 250,
     pointsSize = 3,
-    pointsColor = 0x528ccf
-let scene, camera, renderer, clock, control
-let earthImg, earthData, earthParticles = new THREE.Object3D(),
+    pointsColor = 0x528ccf;
+var scene = void 0,
+    camera = void 0,
+    renderer = void 0,
+    clock = void 0,
+    control = void 0;
+var earthImg = void 0,
+    earthData = void 0,
+    earthParticles = new THREE.Object3D(),
     cloud = new THREE.Object3D(),
     hexagon = new THREE.Object3D(),
     dotTexture = new THREE.TextureLoader().load('img/dot.png'),
@@ -17,201 +25,203 @@ let earthImg, earthData, earthParticles = new THREE.Object3D(),
     hexagonColor = [0xffffff, 0xffff00];
 
 function main(cb) {
-    earthImg = document.createElement('img')
-    earthImg.src = 'img/earth.jpg'
-    earthImg.onload = () => {
-        let earthCanvas = document.createElement('canvas')
-        let earthCtx = earthCanvas.getContext('2d')
-        earthCanvas.width = earthImg.width
-        earthCanvas.height = earthImg.height
-        earthCtx.drawImage(earthImg, 0, 0, earthImg.width, earthImg.height)
-        earthImgData = earthCtx.getImageData(0, 0, earthImg.width, earthImg.height)
-            // basic scene
-        createBasicScene()
-            // 光锥
-       // createObjects()
-            // 球面打点
-        createEarthParticles()
-            // 云层
-        createCloudGrid()
-        animate()
-        if(cb)cb()
-    }
+    earthImg = document.createElement('img');
+    earthImg.src = 'img/earth.jpg';
+    earthImg.onload = function () {
+        var earthCanvas = document.createElement('canvas');
+        var earthCtx = earthCanvas.getContext('2d');
+        earthCanvas.width = earthImg.width;
+        earthCanvas.height = earthImg.height;
+        earthCtx.drawImage(earthImg, 0, 0, earthImg.width, earthImg.height);
+        earthImgData = earthCtx.getImageData(0, 0, earthImg.width, earthImg.height);
+        // basic scene
+        createBasicScene();
+        // 光锥
+        // createObjects()
+        // 球面打点
+        createEarthParticles();
+        // 云层
+        createCloudGrid();
+        animate();
+        if (cb) cb();
+    };
 }
 
 function createBasicScene() {
-    let width = window.innerWidth,
-        height = window.innerHeight
-    scene = new THREE.Scene()
-    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000)
-    camera.position.z = 500
-    renderer = new THREE.WebGLRenderer({ alpha: true } )
-    renderer.setSize(width, height)
-    renderer.autoClearColor = new THREE.Color(1, 0, 0, 0)
-    document.querySelector('#three').appendChild(renderer.domElement)
-    clock = new THREE.Clock()
-    control = new THREE.TrackballControls(camera)
-    control.rotateSpeed = 1.0
-    control.zoomSpeed = 1.0
-    control.panSpeed = 1.0
-    axes = new THREE.AxesHelper(CITY_RADIUS + 10)
-        //scene.add(axes)
+    var width = window.innerWidth,
+        height = window.innerHeight;
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);
+    camera.position.z = 500;
+    renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(width, height);
+    renderer.autoClearColor = new THREE.Color(1, 0, 0, 0);
+    document.querySelector('#three').appendChild(renderer.domElement);
+    clock = new THREE.Clock();
+    control = new THREE.TrackballControls(camera);
+    control.rotateSpeed = 1.0;
+    control.zoomSpeed = 1.0;
+    control.panSpeed = 1.0;
+    axes = new THREE.AxesHelper(CITY_RADIUS + 10);
+    //scene.add(axes)
 
-    window.addEventListener('resize', resize)
+    window.addEventListener('resize', resize);
 }
 
 function createObjects() {
     // 球面
-    let sphereGeom = new THREE.SphereGeometry(CITY_RADIUS, 20, 20),
+    var sphereGeom = new THREE.SphereGeometry(CITY_RADIUS, 20, 20),
         sphereMat = new THREE.MeshBasicMaterial({
-            color: earthFrameColor,
-            wireframe: true
-        })
-    sphere = new THREE.Mesh(sphereGeom, sphereMat)
-    if(earthFrameShow)
-        scene.add(sphere)
-        // 地标及光锥
-    for (let i = 0, length = countries.length; i < length; i++) {
-        const position = createPosition(countries[i].position)//坐标转换
-        const index = Math.floor(Math.random() * 2)
-        createHexagon(position, index) // 地标
-        createCone(position, index) // 光锥 
+        color: earthFrameColor,
+        wireframe: true
+    });
+    sphere = new THREE.Mesh(sphereGeom, sphereMat);
+    if (earthFrameShow) scene.add(sphere);
+    // 地标及光锥
+    for (var i = 0, length = countries.length; i < length; i++) {
+        var position = createPosition(countries[i].position); //坐标转换
+        var index = Math.floor(Math.random() * 2);
+        createHexagon(position, index); // 地标
+        createCone(position, index); // 光锥 
     }
 }
 
 function createHexagon(position, index) {
-    const color = hexagonColor[index]
-    let hexagonLine = new THREE.CircleGeometry(HEXAGON_RADIUS, 6)
-    let hexagonPlane = new THREE.CircleGeometry(HEXAGON_RADIUS - CITY_MARGIN, 6)
-    let vertices = hexagonLine.vertices
-    vertices.shift() // 第一个节点是中心点
-    let circleLineGeom = new THREE.Geometry()
-    circleLineGeom.vertices = vertices
-    let materialLine = new THREE.MeshBasicMaterial({
+    var color = hexagonColor[index];
+    var hexagonLine = new THREE.CircleGeometry(HEXAGON_RADIUS, 6);
+    var hexagonPlane = new THREE.CircleGeometry(HEXAGON_RADIUS - CITY_MARGIN, 6);
+    var vertices = hexagonLine.vertices;
+    vertices.shift(); // 第一个节点是中心点
+    var circleLineGeom = new THREE.Geometry();
+    circleLineGeom.vertices = vertices;
+    var materialLine = new THREE.MeshBasicMaterial({
         color: color,
         side: THREE.DoubleSide
-    })
-    let materialPlane = new THREE.MeshBasicMaterial({
+    });
+    var materialPlane = new THREE.MeshBasicMaterial({
         color: color,
         side: THREE.DoubleSide,
         opacity: 0.5
-    })
-    let circleLine = new THREE.LineLoop(circleLineGeom, materialLine)
-    let circlePlane = new THREE.Mesh(hexagonPlane, materialPlane)
-    circleLine.position.copy(position)
-    circlePlane.position.copy(position)
-    circlePlane.lookAt(new THREE.Vector3(0, 0, 0))
-    circleLine.lookAt(new THREE.Vector3(0, 0, 0))
+    });
+    var circleLine = new THREE.LineLoop(circleLineGeom, materialLine);
+    var circlePlane = new THREE.Mesh(hexagonPlane, materialPlane);
+    circleLine.position.copy(position);
+    circlePlane.position.copy(position);
+    circlePlane.lookAt(new THREE.Vector3(0, 0, 0));
+    circleLine.lookAt(new THREE.Vector3(0, 0, 0));
 
-    hexagon.add(circleLine)
-    hexagon.add(circlePlane)
-    scene.add(hexagon)
+    hexagon.add(circleLine);
+    hexagon.add(circlePlane);
+    scene.add(hexagon);
 }
 
 function createCone(position, index) {
-    let texture = new THREE.TextureLoader().load(coneImg[index]),
+    var texture = new THREE.TextureLoader().load(coneImg[index]),
         material = new THREE.MeshBasicMaterial({
-            map: texture,
-            transparent: true,
-            depthTest: false,
-            side: THREE.DoubleSide,
-            blending: THREE.AdditiveBlending
-        }),
+        map: texture,
+        transparent: true,
+        depthTest: false,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+    }),
         height = Math.random() * 50,
         geometry = new THREE.PlaneGeometry(HEXAGON_RADIUS * 2, height),
-        matrix1 = new THREE.Matrix4,
-        plane1 = new THREE.Mesh(geometry, material)
-    matrix1.makeRotationX(Math.PI / 2)
-    matrix1.setPosition(new THREE.Vector3(0, 0, height / -2))
-    geometry.applyMatrix(matrix1)
-    let plane2 = plane1.clone()
-    plane2.rotation.z = Math.PI / 2
-    plane1.add(plane2)
-    plane1.position.copy(position)
-    plane1.lookAt(0, 0, 0)
-    scene.add(plane1)
+        matrix1 = new THREE.Matrix4(),
+        plane1 = new THREE.Mesh(geometry, material);
+    matrix1.makeRotationX(Math.PI / 2);
+    matrix1.setPosition(new THREE.Vector3(0, 0, height / -2));
+    geometry.applyMatrix(matrix1);
+    var plane2 = plane1.clone();
+    plane2.rotation.z = Math.PI / 2;
+    plane1.add(plane2);
+    plane1.position.copy(position);
+    plane1.lookAt(0, 0, 0);
+    scene.add(plane1);
 }
 
 function createEarthParticles() {
-    let positions = []
-    let materials = []
-    let sizes = []
+    var positions = [];
+    var materials = [];
+    var sizes = [];
     for (var i = 0; i < 2; i++) {
         positions[i] = {
             positions: []
-        }
+        };
         sizes[i] = {
             sizes: []
-        }
-        mat = new THREE.PointsMaterial()
-        mat.size = pointsSize
-        mat.color = new THREE.Color(pointsColor)
-        mat.map = dotTexture
-        mat.depthWrite = false
-        mat.transparent = true
-        mat.opacity = 0
-        mat.side = THREE.FrontSide
-        mat.blending = THREE.AdditiveBlending
-        let n = i / 2
-        mat.t_ = n * Math.PI * 2
-        mat.speed_ = BLINT_SPEED
-        mat.min_ = .2 * Math.random() + .5
-        mat.delta_ = .1 * Math.random() + .1
-        mat.opacity_coef_ = 1
-        materials.push(mat)
+        };
+        mat = new THREE.PointsMaterial();
+        mat.size = pointsSize;
+        mat.color = new THREE.Color(pointsColor);
+        mat.map = dotTexture;
+        mat.depthWrite = false;
+        mat.transparent = true;
+        mat.opacity = 0;
+        mat.side = THREE.FrontSide;
+        mat.blending = THREE.AdditiveBlending;
+        var n = i / 2;
+        mat.t_ = n * Math.PI * 2;
+        mat.speed_ = BLINT_SPEED;
+        mat.min_ = .2 * Math.random() + .5;
+        mat.delta_ = .1 * Math.random() + .1;
+        mat.opacity_coef_ = 1;
+        materials.push(mat);
     }
-    var spherical = new THREE.Spherical
-    spherical.radius = radius
-    const step = pointsRows
-    for (let i = 0; i < step; i++) {
-        let vec = new THREE.Vector3
-        let radians = step * (1 - Math.sin(i / step * Math.PI)) / step + .5 // 每个纬线圈内的角度均分
-        for (let j = 0; j < step; j += radians) {
-            let c = j / step, // 底图上的横向百分比
-                f = i / step, // 底图上的纵向百分比
-                index = Math.floor(2 * Math.random())
-            pos = positions[index]
-            size = sizes[index]
-            if (isLandByUV(c, f)) { // 根据横纵百分比判断在底图中的像素值
-                spherical.theta = c * Math.PI * 2 - Math.PI / 2 // 横纵百分比转换为theta和phi夹角
-                spherical.phi = f * Math.PI // 横纵百分比转换为theta和phi夹角
-                vec.setFromSpherical(spherical) // 夹角转换为世界坐标
-                pos.positions.push(vec.x)
-                pos.positions.push(vec.y)
-                pos.positions.push(vec.z)
+    var spherical = new THREE.Spherical();
+    spherical.radius = radius;
+    var step = pointsRows;
+    for (var _i = 0; _i < step; _i++) {
+        var vec = new THREE.Vector3();
+        var radians = step * (1 - Math.sin(_i / step * Math.PI)) / step + .5; // 每个纬线圈内的角度均分
+        for (var j = 0; j < step; j += radians) {
+            var c = j / step,
+                // 底图上的横向百分比
+            f = _i / step,
+                // 底图上的纵向百分比
+            index = Math.floor(2 * Math.random());
+            pos = positions[index];
+            size = sizes[index];
+            if (isLandByUV(c, f)) {
+                // 根据横纵百分比判断在底图中的像素值
+                spherical.theta = c * Math.PI * 2 - Math.PI / 2; // 横纵百分比转换为theta和phi夹角
+                spherical.phi = f * Math.PI; // 横纵百分比转换为theta和phi夹角
+                vec.setFromSpherical(spherical); // 夹角转换为世界坐标
+                pos.positions.push(vec.x);
+                pos.positions.push(vec.y);
+                pos.positions.push(vec.z);
                 if (j % 3 === 0) {
-                    size.sizes.push(6.0)
+                    size.sizes.push(6.0);
                 }
             }
         }
     }
-    for (let i = 0; i < positions.length; i++) {
-        let pos = positions[i],
-            size = sizes[i],
-            bufferGeom = new THREE.BufferGeometry,
-            typedArr1 = new Float32Array(pos.positions.length),
-            typedArr2 = new Float32Array(size.sizes.length)
-        for (let j = 0; j < pos.positions.length; j++) {
-            typedArr1[j] = pos.positions[j]
+    for (var _i2 = 0; _i2 < positions.length; _i2++) {
+        var _pos = positions[_i2],
+            _size = sizes[_i2],
+            bufferGeom = new THREE.BufferGeometry(),
+            typedArr1 = new Float32Array(_pos.positions.length),
+            typedArr2 = new Float32Array(_size.sizes.length);
+        for (var _j = 0; _j < _pos.positions.length; _j++) {
+            typedArr1[_j] = _pos.positions[_j];
         }
-        for (let j = 0; j < size.sizes.length; j++) {
-            typedArr2[j] = size.sizes[j]
+        for (var _j2 = 0; _j2 < _size.sizes.length; _j2++) {
+            typedArr2[_j2] = _size.sizes[_j2];
         }
-        bufferGeom.addAttribute("position", new THREE.BufferAttribute(typedArr1, 3))
-        bufferGeom.addAttribute('size', new THREE.BufferAttribute(typedArr2, 1))
-        bufferGeom.computeBoundingSphere()
-        let particle = new THREE.Points(bufferGeom, materials[i])
-        earthParticles.add(particle)
+        bufferGeom.addAttribute("position", new THREE.BufferAttribute(typedArr1, 3));
+        bufferGeom.addAttribute('size', new THREE.BufferAttribute(typedArr2, 1));
+        bufferGeom.computeBoundingSphere();
+        var particle = new THREE.Points(bufferGeom, materials[_i2]);
+        earthParticles.add(particle);
     }
-    scene.add(earthParticles)
+    scene.add(earthParticles);
 }
 
 function createCloudGrid() {
-    THREE.XRayMaterial = function(options) {
-        let uniforms = {
+    THREE.XRayMaterial = function (options) {
+        var uniforms = {
             uTex: {
                 type: "t",
-                value: options.map || new THREE.Texture
+                value: options.map || new THREE.Texture()
             },
             offsetRepeat: {
                 value: new THREE.Vector4(0, 0, 1, 1)
@@ -229,111 +239,87 @@ function createCloudGrid() {
             gridOffset: {
                 value: 0
             }
-        }
+        };
         return new THREE.ShaderMaterial({
             uniforms: uniforms,
-            vertexShader: ` 
-varying float _alpha;
-varying vec2 vUv;
-uniform vec4 offsetRepeat;
-uniform float alphaProportion;
-void main() {
-gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
-vec4 worldPosition = modelMatrix * vec4( vec3( position ), 1.0 );
-vec3 cameraToVertex = normalize( cameraPosition - worldPosition.xyz);
-_alpha = 1.0 - max( 0.0, dot( normal, cameraToVertex ) );
-_alpha = max( 0.0, (_alpha - alphaProportion) / (1.0 - alphaProportion) );
-}`,
-            fragmentShader: `
-uniform sampler2D uTex;
-uniform vec3 diffuse;
-uniform float opacity;
-uniform float gridOffset;
-varying float _alpha;
-varying vec2 vUv;
-void main() {
-vec4 texColor = texture2D( uTex, vUv );
-float _a = _alpha * opacity;
-if( _a <= 0.0 ) discard;
-_a = _a * ( sin( vUv.y * 2000.0 + gridOffset ) * .5 + .5 );
-gl_FragColor = vec4( texColor.rgb * diffuse, _a );
-}`,
+            vertexShader: ' \nvarying float _alpha;\nvarying vec2 vUv;\nuniform vec4 offsetRepeat;\nuniform float alphaProportion;\nvoid main() {\ngl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\nvUv = uv * offsetRepeat.zw + offsetRepeat.xy;\nvec4 worldPosition = modelMatrix * vec4( vec3( position ), 1.0 );\nvec3 cameraToVertex = normalize( cameraPosition - worldPosition.xyz);\n_alpha = 1.0 - max( 0.0, dot( normal, cameraToVertex ) );\n_alpha = max( 0.0, (_alpha - alphaProportion) / (1.0 - alphaProportion) );\n}',
+            fragmentShader: '\nuniform sampler2D uTex;\nuniform vec3 diffuse;\nuniform float opacity;\nuniform float gridOffset;\nvarying float _alpha;\nvarying vec2 vUv;\nvoid main() {\nvec4 texColor = texture2D( uTex, vUv );\nfloat _a = _alpha * opacity;\nif( _a <= 0.0 ) discard;\n_a = _a * ( sin( vUv.y * 2000.0 + gridOffset ) * .5 + .5 );\ngl_FragColor = vec4( texColor.rgb * diffuse, _a );\n}',
             transparent: !0,
             blending: THREE.AdditiveBlending,
             depthTest: !1
-        })
-    }
-    let geometry = new THREE.SphereGeometry(1.1 * radius, 66, 44),
-        map = new THREE.TextureLoader().load('img/clouds.jpg')
-    map.wrapT = THREE.ClampToEdgeWrapping
-    map.wrapS = THREE.ClampToEdgeWrapping
-    let material = new THREE.XRayMaterial({
-            map: map,
-            alphaProportion: .25,
-            color: new THREE.Color(263385797),
-            opacity: 0,
-            gridOffsetSpeed: .6
-        }),
-        mesh = new THREE.Mesh(geometry, material)
-    mesh.matrixAutoUpdate = !1
-    cloud.add(mesh)
-    scene.add(cloud)
+        });
+    };
+    var geometry = new THREE.SphereGeometry(1.1 * radius, 66, 44),
+        map = new THREE.TextureLoader().load('img/clouds.jpg');
+    map.wrapT = THREE.ClampToEdgeWrapping;
+    map.wrapS = THREE.ClampToEdgeWrapping;
+    var material = new THREE.XRayMaterial({
+        map: map,
+        alphaProportion: .25,
+        color: new THREE.Color(263385797),
+        opacity: 0,
+        gridOffsetSpeed: .6
+    }),
+        mesh = new THREE.Mesh(geometry, material);
+    mesh.matrixAutoUpdate = !1;
+    cloud.add(mesh);
+    scene.add(cloud);
 }
 
 function resize() {
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 }
 
 function render() {
-    let delta = clock.getDelta()
-    control.update(delta)
-    renderer.render(scene, camera)
+    var delta = clock.getDelta();
+    control.update(delta);
+    renderer.render(scene, camera);
 }
-let theta=0;
+var theta = 0;
 function animate() {
-    requestAnimationFrame(animate)
-        // 球面粒子闪烁
-    let objects = earthParticles.children
-    objects.forEach(obj => {
-        let material = obj.material
-        material.t_ += material.speed_
-        material.opacity = (Math.sin(material.t_) * material.delta_ + material.min_) * material.opacity_coef_
-        material.needsUpdate = true
-    })
-   // earthParticles.rotation.y-=0.001
-   // cloud.rotation.y+=.002
-   theta+=0.02;
-   //camera.rotation.y=theta;
-  //camera.position.set(500*Math.sin(theta),0,500*Math.cos(theta));
-    render()
+    requestAnimationFrame(animate);
+    // 球面粒子闪烁
+    var objects = earthParticles.children;
+    objects.forEach(function (obj) {
+        var material = obj.material;
+        material.t_ += material.speed_;
+        material.opacity = (Math.sin(material.t_) * material.delta_ + material.min_) * material.opacity_coef_;
+        material.needsUpdate = true;
+    });
+    // earthParticles.rotation.y-=0.001
+    // cloud.rotation.y+=.002
+    theta += 0.02;
+    //camera.rotation.y=theta;
+    //camera.position.set(500*Math.sin(theta),0,500*Math.cos(theta));
+    render();
 }
 
 function createPosition(lnglat) {
-    let spherical = new THREE.Spherical
-    spherical.radius = radius
-    const lng = lnglat[0]
-    const lat = lnglat[1]
-        // const phi = (180 - lng) * (Math.PI / 180)
-        // const theta = (90 + lat) * (Math.PI / 180)
-    const theta = (lng + 90) * (Math.PI / 180)
-    const phi = (90 - lat) * (Math.PI / 180)
-    spherical.phi = phi
-    spherical.theta = theta
-    let position = new THREE.Vector3()
-    position.setFromSpherical(spherical)
-    return position
+    var spherical = new THREE.Spherical();
+    spherical.radius = radius;
+    var lng = lnglat[0];
+    var lat = lnglat[1];
+    // const phi = (180 - lng) * (Math.PI / 180)
+    // const theta = (90 + lat) * (Math.PI / 180)
+    var theta = (lng + 90) * (Math.PI / 180);
+    var phi = (90 - lat) * (Math.PI / 180);
+    spherical.phi = phi;
+    spherical.theta = theta;
+    var position = new THREE.Vector3();
+    position.setFromSpherical(spherical);
+    return position;
 }
 
 function isLandByUV(c, f) {
-    if (!earthImgData) { // 底图数据
-        console.error('data error!')
+    if (!earthImgData) {
+        // 底图数据
+        console.error('data error!');
     }
-    let n = parseInt(earthImg.width * c) // 根据横纵百分比计算图象坐标系中的坐标
-    o = parseInt(earthImg.height * f) // 根据横纵百分比计算图象坐标系中的坐标
-    return 0 === earthImgData.data[4 * (o * earthImgData.width + n)] // 查找底图中对应像素点的rgba值并判断
+    var n = parseInt(earthImg.width * c); // 根据横纵百分比计算图象坐标系中的坐标
+    o = parseInt(earthImg.height * f); // 根据横纵百分比计算图象坐标系中的坐标
+    return 0 === earthImgData.data[4 * (o * earthImgData.width + n)]; // 查找底图中对应像素点的rgba值并判断
 }
 
 var countries = [{
@@ -930,4 +916,4 @@ var countries = [{
 }, {
     name: "阿尔巴尼亚",
     position: [19.49, 41.18]
-}]
+}];

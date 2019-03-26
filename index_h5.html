@@ -13,13 +13,13 @@
     <script src="js/three.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/dtc.umd.min.js"></script>
-    <script src="js/index.js"></script>
-
+    <script src="js/index.1.js"></script>
     <style>
         body {
             overflow: hidden;
             background: url(img/bg.png);
         }
+
         .chart {
             position: relative;
             top: 0;
@@ -31,6 +31,7 @@
             background-size: contain;
             pointer-events: none;
         }
+
         #three {
             overflow: hidden;
             position: absolute;
@@ -38,6 +39,7 @@
             left: 0;
             opacity: 1;
         }
+
         #china {
             overflow: hidden;
             position: absolute;
@@ -51,6 +53,12 @@
             margin: auto;
             /* border:1px solid #cceeff; */
         }
+        @media screen and (max-width: 960px){
+            #china {
+                width: 450px;
+                height: 300px;
+            }
+        }
         .debug {
             position: absolute;
             bottom: 0;
@@ -63,8 +71,27 @@
             border-radius: 5px;
             color: #de4b65;
             background: rgba(0, 0, 0, .9);
-            opacity:1;
+            opacity: 1;
         }
+        @media screen and (max-width: 960px){
+            .debug {
+                position: absolute;
+    bottom: 0;
+    z-index: 100;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #8ab4f8;
+    border-radius: 5px;
+    color: #de4b65;
+    background: rgba(0, 0, 0, .7);
+    opacity: 1;
+}
+        }
+
+       
         .light {
             position: absolute;
             top: 100px;
@@ -73,10 +100,26 @@
             width: 80%;
             pointer-events: none;
         }
+        @media screen and (max-width: 960px){
+            .light {
+                top: 50px;
+                left: 100px;
+            }
+        }
+
         .gs-dev-tools {
             z-index: 1000;
         }
-       
+
+        #img,
+        #canvas {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 200px;
+            width: 300px;
+            z-index: 1000;
+        }
     </style>
 </head>
 
@@ -84,13 +127,67 @@
     <div id='three'></div>
     <div id='china'></div>
     <div class="chart"></div>
-    <div class="debug"></div>
+    <div id='debug' class="debug"></div>
     <img class="light" src='img/light.png' />
-
 </body>
 <script>
-  
-    let map,spotLigh;
+    
+    window.onerror=function(err){
+        $('#debug').html("err:"+JSON.stringify(err))
+    }
+    
+    window.onload = function () {
+        //陀螺仪
+        if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientation', function (event) {
+            var a = document.getElementById('alpha'),
+                b = document.getElementById('beta'),
+                g = document.getElementById('gamma'),
+                alpha = event.alpha,
+                beta = event.beta,
+                gamma = event.gamma;
+ 
+            var z = Math.round(alpha)/180*Math.PI;
+            var y = -(Math.round(beta)/180*Math.PI);
+           var x = -(Math.round(gamma)/180*Math.PI)/.8; 
+          // x/180*Math.PI
+           //map.areaGroup.rotateX(x)
+            TweenMax.to(map.areaGroup.rotation, .5, {  x: x,y:y})
+            $('#debug').html('陀螺仪z:'+Math.round(alpha)+',x:'+Math.round(beta)+',y:'+Math.round(gamma)
+            +"    ,,,x:"+x+",y:"+y+",z:"+z
+            )
+ 
+        }, false);
+    } 
+    //重力加速度
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', deviceMotionHandler, false);
+        }
+        var speed = 30;//速度
+        var x = y = z = lastX = lastY = lastZ = 0;
+        function deviceMotionHandler(eventData) {
+            var acceleration = eventData.accelerationIncludingGravity;
+            x = acceleration.x;
+            y = acceleration.y;
+            z = acceleration.z;
+            if (Math.abs(x - lastX) > speed || Math.abs(y - lastY) > speed || Math.abs(z - lastZ) > speed) {
+                //简单的摇一摇触发代码
+                //alert('触发了重力感应');
+                tlmax.restart()
+            }
+            lastX = x;
+            lastY = y;
+            lastZ = z;
+            var vx = map.camera.position.x*x/10;
+            var vy = map.camera.position.y*y/10;
+            var vz = map.camera.position.z*z/10;
+           
+        }
+
+    }
+
+    //业务代码
+    let map, spotLigh;
     let tlmax = new TimelineMax();
 
     main(init)
@@ -112,18 +209,17 @@
         //中国进场
         //tlmax.addLabel("chinaIn",1.7);
         //初始化中国地图
-         tlmax.add(function(){
-            mapinit(function(map){
-            tlmax.add(TweenMax.to(map.camera.position,.5,{x: 95, y: 23, z: 1}))
-            tlmax.add(TweenMax.to(map.camera.position,.5,{ease: Back.easeOut, x: 1.4, y: -3, z: 31.7}))
-            tlmax.add(TweenMax.to(spotLight.position, 2, { x: 0, y: 0, z: 60 }))   
-            tlmax.add(TweenMax.to(camera.position, 1, { ease: Back.easeOut, x: 0, y: 0, z: 400 }),'-=2.3')       
+        tlmax.add(function () {
+            mapinit(function (map) {
+                tlmax.add(TweenMax.to(map.camera.position, .5, { x: 95, y: 23, z: 1 }))
+                tlmax.add(TweenMax.to(map.camera.position, .5, { ease: Back.easeOut, x: 1.4, y: -3, z: 31.7 }))
+                tlmax.add(TweenMax.to(spotLight.position, 2, { x: 0, y: 0, z: 60 }))
+                tlmax.add(TweenMax.to(camera.position, 1, { ease: Back.easeOut, x: 0, y: 0, z: 400 }), '-=2.3')
             })
-         },1.7)
-        
+        }, 1.7)
+
         // GSDevTools.create();
 
-        
     }
 
     function mapinit(cb) {
@@ -163,25 +259,25 @@
             });
         });
         map = new dtc.vis.Map3D(opt)
-        
+
         //设置锥形灯光
         spotLight = map.scene.children[3]
         spotLight.position.set(0, 0, 0);
         spotLight.intensity = .5;
         spotLight.decay = 2;
         spotLight.penumbra = .1;
-        
+
         //重置相机位置
         map.setCameraPosition({ x: 0, y: 0, z: -60 })
         console.log('...map')
-        if(cb)cb(map)
+        if (cb) cb(map)
 
-        setInterval(function () {
-            $(".debug").html('camera.position:' + JSON.stringify(camera.position)
-                + '<br>map.camera :'  + JSON.stringify(map.camera.position)
-                + '<br>map.areaGroup :' +   JSON.stringify(map.areaGroup.position)
-            )
-        }, 100)
+        // setInterval(function () {
+        //     $(".debug").html('camera.position:' + JSON.stringify(camera.position)
+        //         + '<br>map.camera :'  + JSON.stringify(map.camera.position)
+        //         + '<br>map.areaGroup :' +   JSON.stringify(map.areaGroup.position)
+        //     )
+        // }, 100)
     }
 </script>
 

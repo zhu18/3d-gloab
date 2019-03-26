@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="js/china.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/TweenMax.min.js"></script>
+    <script src="js/GSDevTools.min.js"></script>
+    <script src="js/three.js"></script>
+    <script src="js/TrackballControls.js"></script>
+    <script src="js/dtc.umd.min.js"></script>
+    <script src="js/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handtrackjs/dist/handtrack.min.js"> </script>
+
+    <style>
+        body {
+            overflow: hidden;
+            background: url(img/bg.png);
+        }
+
+        .chart {
+            position: relative;
+            top: 0;
+            left: 0;
+            z-index: 11;
+            width: 100%;
+            height: 100vh;
+            background: url(img/chart.png);
+            background-size: contain;
+            pointer-events: none;
+        }
+
+        #three {
+            overflow: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 1;
+        }
+
+        #china {
+            overflow: hidden;
+            position: absolute;
+            top: 50px;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 10;
+            width: 900px;
+            height: 600px;
+            margin: auto;
+            /* border:1px solid #cceeff; */
+        }
+
+        .debug {
+            position: absolute;
+            bottom: 0;
+            z-index: 100;
+            width: 99%;
+            height: 100px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #8ab4f8;
+            border-radius: 5px;
+            color: #de4b65;
+            background: rgba(0, 0, 0, .9);
+            opacity: 1;
+        }
+
+        .light {
+            position: absolute;
+            top: 100px;
+            left: 200px;
+            z-index: 1001;
+            width: 80%;
+            pointer-events: none;
+        }
+
+        .gs-dev-tools {
+            z-index: 1000;
+        }
+
+        #img,
+        #canvas {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 200px;
+            width: 350px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='three'></div>
+    <div id='china'></div>
+    <div class="chart"></div>
+    <div id='debug' class="debug"></div>
+    <img class="light" src='img/light.png' />
+    <video class="videobox canvasbox" autoplay="autoplay" id="myvideo"></video>
+    <canvas id="canvas" class="border canvasbox"></canvas>
+</body>
+<script>
+    // 手势识别
+    let isVideo = false;
+    let model = null;
+    let updateNote = document.getElementById('debug');
+    const video = document.getElementById("myvideo");
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    // video.width = 500
+    // video.height = 400
+    window.onerror=function(err){
+        $('#debug').html("err:"+JSON.stringify(err))
+    }
+    if (navigator.getUserMedia) { // 标准的API
+    navigator.getUserMedia({ "video": true }, function (stream) {
+        video.src = stream;
+        video.play();
+    }, function(err){console.log(err)});
+} else if (navigator.webkitGetUserMedia) { // WebKit 核心的API
+    navigator.webkitGetUserMedia({ "video": true }, function (stream) {
+        video.src = window.webkitURL.createObjectURL(stream);
+        video.play();
+    },  function(err){console.log(err)});
+ }
+    const modelParams = {
+        flipHorizontal: true,   // flip e.g for video  
+        maxNumBoxes: 1,        // maximum number of boxes to detect
+        iouThreshold: .5,      // ioU threshold for non-max suppression
+        scoreThreshold: 0.6,    // confidence threshold for predictions.
+    }
+
+    function startVideo() {
+        handTrack.startVideo(video).then(function (status) {
+            console.log("video started", status);
+            if (status) {
+                updateNote.innerText = "Video started. Now tracking"
+                isVideo = true
+                runDetection()
+            } else {
+                updateNote.innerText = "Please enable video"
+            }
+        });
+    }
+
+    function toggleVideo() {
+        if (!isVideo) {
+            updateNote.innerText = "Starting video"
+            startVideo();
+        } else {
+            updateNote.innerText = "Stopping video"
+            handTrack.stopVideo(video)
+            isVideo = false;
+            updateNote.innerText = "Video stopped"
+        }
+    }
+    function runDetection() {
+        model.detect(video).then(predictions => {
+            console.log("Predictions: ", predictions);
+            if(predictions.length){
+                let hand =predictions[0].bbox
+
+                //z轴转换率
+                let zrv = 70/200 //map.camera.position.z范围100-30比采集区域手宽度100-300，得70/200
+                let z=100-((hand[2]-100) * zrv)
+                //x轴转换
+                let xrv = 260/30 // map.camera.position.z范围-30-30比采集区域手宽度-260-260
+                let x = -((hand[0]-260)/xrv)
+                //y轴转换
+                let yrv = 250/30 // map.camera.position.z范围-30-30比采集区域手宽度-260-260
+                let y = (hand[1]-150)/yrv
+                //map.camera.position.z=z
+                TweenMax.to(map.camera.position, .5, {  x: x,y:y})
+
+               // map.camera.position.set({ x: hand[0], y: hand[1], z: hand[2] })
+                updateNote.innerHTML='捕获手势:score:'+parseInt(predictions[0].score*100)+', x'+parseInt(hand[0])
+                +',y:'+parseInt(hand[1])
+                +',w:'+parseInt(hand[2])
+                +',h:'+parseInt(hand[3])
+                +'<br>map.camera.x:'+parseInt(map.camera.position.x)
+                +'<br>map.camera.y:'+parseInt(map.camera.position.y)
+                +'<br>map.camera.z:'+parseInt(map.camera.position.z);
+                
+               
+            }
+            model.renderPredictions(predictions, canvas, context, video);
+            if (isVideo) {
+                requestAnimationFrame(runDetection);
+            }
+        });
+    }
+
+    function runDetectionImage(img) {
+        model.detect(img).then(predictions => {
+            console.log("Predictions: ", predictions);
+            model.renderPredictions(predictions, canvas, context, img);
+        });
+    }
+    window.onload = function () {
+
+        // Load the model.
+        handTrack.load(modelParams).then(lmodel => {
+
+            // detect objects in the image.
+            model = lmodel
+            updateNote.innerText = "Loaded Model!"
+            startVideo()
+            //runDetectionImage(handimg)
+        });
+
+    }
+
+    //业务代码
+    let map, spotLigh;
+    let tlmax = new TimelineMax();
+
+    main(init)
+
+    function init() {
+        console.log('init,...')
+        //地球进场
+        tlmax.addLabel("earthIn");
+        //地球小变大
+        tlmax.add(TweenMax.fromTo(camera.position, 2, { x: 0, y: 0, z: 800 }, { ease: Power1.easeOut, x: 0, y: 0, z: 10 }), "earthIn")
+        //地球变大同时快速旋转
+        tlmax.add(TweenMax.to(earthParticles.rotation, 2, { ease: Power0.easeOut, x: 0, y: 5, z: 0 }), "earthIn")
+        //地球融入背景
+        tlmax.addLabel("earthInBackground");
+        //地球变淡
+        tlmax.add(TweenMax.to('#three', 2, { opacity: .2 }), "earthInBackground")
+        //地球持续旋转作为背景
+        tlmax.add(TweenMax.to(earthParticles.rotation, 300, { repeat: -1, ease: Power0.easeNone, x: 0, y: 45, z: 0 }), "earthInBackground")
+        //中国进场
+        //tlmax.addLabel("chinaIn",1.7);
+        //初始化中国地图
+        tlmax.add(function () {
+            mapinit(function (map) {
+                tlmax.add(TweenMax.to(map.camera.position, .5, { x: 95, y: 23, z: 1 }))
+                tlmax.add(TweenMax.to(map.camera.position, .5, { ease: Back.easeOut, x: 1.4, y: -3, z: 31.7 }))
+                tlmax.add(TweenMax.to(spotLight.position, 2, { x: 0, y: 0, z: 60 }))
+                tlmax.add(TweenMax.to(camera.position, 1, { ease: Back.easeOut, x: 0, y: 0, z: 400 }), '-=2.3')
+            })
+        }, 1.7)
+
+        // GSDevTools.create();
+
+
+    }
+
+    function mapinit(cb) {
+
+        var opt = {
+            el: $('#china')[0],
+            geoData: chinaGeoJson,
+            debug: true,
+
+            area: {
+                data: [],
+                // color: 0x052659,
+                lineColor: 0xffffff,//0x7acdf5,
+                loadEffect: true,
+                hoverAnimaTime: 300,
+                hasPhong: true,      //是否反光材质
+                shininess: 50,      //反光材质光滑度
+                hoverColor: 'rgb(155,234,255)',
+                opacity: .8
+            },
+            dataRange: {
+                data: [
+                    { name: "高", min: 90, color: 'rgb(0,30,78)' },
+                    { name: "高", min: 80, max: 90, color: 'rgb(7,58,137)' },
+                    { name: "中", min: 60, max: 80, color: 'rgb(15,81,187)' },
+                    { name: "低", max: 60, min: 30, color: 'rgb(36,112,223)' },
+                    { name: "低", max: 30, color: 'rgb(69,144,254)' }
+                ]
+            }
+        }
+        //添加区域数据
+        chinaGeoJson.features.forEach(i => {
+            //随机数据
+            opt.area.data.push({
+                name: i.properties.name,
+                value: Math.random() * 100,
+            });
+        });
+        map = new dtc.vis.Map3D(opt)
+
+        //设置锥形灯光
+        spotLight = map.scene.children[3]
+        spotLight.position.set(0, 0, 0);
+        spotLight.intensity = .5;
+        spotLight.decay = 2;
+        spotLight.penumbra = .1;
+
+        //重置相机位置
+        map.setCameraPosition({ x: 0, y: 0, z: -60 })
+        console.log('...map')
+        if (cb) cb(map)
+
+        // setInterval(function () {
+        //     $(".debug").html('camera.position:' + JSON.stringify(camera.position)
+        //         + '<br>map.camera :'  + JSON.stringify(map.camera.position)
+        //         + '<br>map.areaGroup :' +   JSON.stringify(map.areaGroup.position)
+        //     )
+        // }, 100)
+    }
+</script>
+
+</html>
