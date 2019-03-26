@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>手势识别</title>
     <script src="js/china.js"></script>
     <script src="js/jquery.min.js"></script>
     <script src="js/TweenMax.min.js"></script>
@@ -29,8 +29,8 @@
             z-index: 11;
             width: 100%;
             height: 100vh;
-            background: url(img/chart.png);
-            background-size: contain;
+            background: url(img/chart.png) no-repeat;
+            background-size: 100% 100%;
             pointer-events: none;
         }
 
@@ -45,7 +45,7 @@
         #china {
             overflow: hidden;
             position: absolute;
-            top: 50px;
+            top: 100px;
             right: 0;
             bottom: 0;
             left: 0;
@@ -67,8 +67,9 @@
             border: 1px solid #8ab4f8;
             border-radius: 5px;
             color: #de4b65;
-            background: rgba(0, 0, 0, .9);
+            background: rgba(0, 0, 0, .7);
             opacity: 1;
+            display: none;
         }
 
         .light {
@@ -84,14 +85,14 @@
             z-index: 1000;
         }
 
-        #img,
         #canvas {
             position: absolute;
             top: 0;
             right: 0;
             height: 200px;
-            width: 350px;
+            width: 300px;
             z-index: 1000;
+            display: none;
         }
     </style>
 </head>
@@ -115,20 +116,20 @@
     const context = canvas.getContext('2d');
     // video.width = 500
     // video.height = 400
-    window.onerror=function(err){
-        $('#debug').html("err:"+JSON.stringify(err))
+    window.onerror = function (err) {
+        $('#debug').html("err:" + JSON.stringify(err))
     }
     if (navigator.getUserMedia) { // 标准的API
-    navigator.getUserMedia({ "video": true }, function (stream) {
-        video.src = stream;
-        video.play();
-    }, function(err){console.log(err)});
-} else if (navigator.webkitGetUserMedia) { // WebKit 核心的API
-    navigator.webkitGetUserMedia({ "video": true }, function (stream) {
-        video.src = window.webkitURL.createObjectURL(stream);
-        video.play();
-    },  function(err){console.log(err)});
- }
+        navigator.getUserMedia({ "video": true }, function (stream) {
+            video.src = stream;
+            video.play();
+        }, function (err) { console.log(err) });
+    } else if (navigator.webkitGetUserMedia) { // WebKit 核心的API
+        navigator.webkitGetUserMedia({ "video": true }, function (stream) {
+            video.src = window.webkitURL.createObjectURL(stream);
+            video.play();
+        }, function (err) { console.log(err) });
+    }
     const modelParams = {
         flipHorizontal: true,   // flip e.g for video  
         maxNumBoxes: 1,        // maximum number of boxes to detect
@@ -163,31 +164,31 @@
     function runDetection() {
         model.detect(video).then(predictions => {
             console.log("Predictions: ", predictions);
-            if(predictions.length){
-                let hand =predictions[0].bbox
+            if (predictions.length) {
+                let hand = predictions[0].bbox
 
                 //z轴转换率
-                let zrv = 70/200 //map.camera.position.z范围100-30比采集区域手宽度100-300，得70/200
-                let z=100-((hand[2]-100) * zrv)
+                let zrv = 70 / 200 //map.camera.position.z范围100-30比采集区域手宽度100-300，得70/200
+                let z = 100 - ((hand[2] - 100) * zrv)
                 //x轴转换
-                let xrv = 260/30 // map.camera.position.z范围-30-30比采集区域手宽度-260-260
-                let x = -((hand[0]-260)/xrv)
+                let xrv = 260 / 30 // map.camera.position.z范围-30-30比采集区域手宽度-260-260
+                let x = -((hand[0] - 260) / xrv)
                 //y轴转换
-                let yrv = 250/30 // map.camera.position.z范围-30-30比采集区域手宽度-260-260
-                let y = (hand[1]-150)/yrv
+                let yrv = 250 / 30 // map.camera.position.z范围-30-30比采集区域手宽度-260-260
+                let y = (hand[1] - 150) / yrv
                 //map.camera.position.z=z
-                TweenMax.to(map.camera.position, .5, {  x: x,y:y})
+                TweenMax.to(map.camera.position, .5, { x: x, y: y })
 
-               // map.camera.position.set({ x: hand[0], y: hand[1], z: hand[2] })
-                updateNote.innerHTML='捕获手势:score:'+parseInt(predictions[0].score*100)+', x'+parseInt(hand[0])
-                +',y:'+parseInt(hand[1])
-                +',w:'+parseInt(hand[2])
-                +',h:'+parseInt(hand[3])
-                +'<br>map.camera.x:'+parseInt(map.camera.position.x)
-                +'<br>map.camera.y:'+parseInt(map.camera.position.y)
-                +'<br>map.camera.z:'+parseInt(map.camera.position.z);
-                
-               
+                // map.camera.position.set({ x: hand[0], y: hand[1], z: hand[2] })
+                updateNote.innerHTML = '捕获手势:score:' + parseInt(predictions[0].score * 100) + ', x' + parseInt(hand[0])
+                    + ',y:' + parseInt(hand[1])
+                    + ',w:' + parseInt(hand[2])
+                    + ',h:' + parseInt(hand[3])
+                    + '<br>map.camera.x:' + parseInt(map.camera.position.x)
+                    + '<br>map.camera.y:' + parseInt(map.camera.position.y)
+                    + '<br>map.camera.z:' + parseInt(map.camera.position.z);
+
+
             }
             model.renderPredictions(predictions, canvas, context, video);
             if (isVideo) {
@@ -213,6 +214,11 @@
             startVideo()
             //runDetectionImage(handimg)
         });
+         //debug 模式
+         if (dtc.util.urlArgs().debug=="true") {
+            $(".debug").show()
+            $("#canvas").show()
+        }
 
     }
 

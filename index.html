@@ -20,6 +20,7 @@
             overflow: hidden;
             background: url(img/bg.png);
         }
+
         .chart {
             position: relative;
             top: 0;
@@ -27,10 +28,11 @@
             z-index: 11;
             width: 100%;
             height: 100vh;
-            background: url(img/chart.png);
-            background-size: contain;
+            background: url(img/chart.png) no-repeat;
+            background-size: 100% 100%;
             pointer-events: none;
         }
+
         #three {
             overflow: hidden;
             position: absolute;
@@ -38,10 +40,11 @@
             left: 0;
             opacity: 1;
         }
+
         #china {
             overflow: hidden;
             position: absolute;
-            top: 50px;
+            top: 100px;
             right: 0;
             bottom: 0;
             left: 0;
@@ -51,6 +54,7 @@
             margin: auto;
             /* border:1px solid #cceeff; */
         }
+
         .debug {
             position: absolute;
             bottom: 0;
@@ -62,9 +66,11 @@
             border: 1px solid #8ab4f8;
             border-radius: 5px;
             color: #de4b65;
-            background: rgba(0, 0, 0, .9);
-            opacity:1;
+            background: rgba(0, 0, 0, .7);
+            opacity: 1;
+            display: none;
         }
+
         .light {
             position: absolute;
             top: 100px;
@@ -73,10 +79,10 @@
             width: 80%;
             pointer-events: none;
         }
+
         .gs-dev-tools {
             z-index: 1000;
         }
-       
     </style>
 </head>
 
@@ -89,9 +95,22 @@
 
 </body>
 <script>
-  
-    let map,spotLigh;
+
+    let map, spotLigh;
     let tlmax = new TimelineMax();
+
+    window.onload = function () {
+        //debug 模式
+        if (dtc.util.urlArgs().debug=="true") {
+            $(".debug").show()
+            setInterval(function () {
+                $(".debug").html('camera.position:' + JSON.stringify(camera.position)
+                    + '<br>map.camera :' + JSON.stringify(map.camera.position)
+                    + '<br>map.areaGroup :' + JSON.stringify(map.areaGroup.position)
+                )
+            }, 100)
+        }
+    }
 
     main(init)
 
@@ -112,18 +131,18 @@
         //中国进场
         //tlmax.addLabel("chinaIn",1.7);
         //初始化中国地图
-         tlmax.add(function(){
-            mapinit(function(map){
-            tlmax.add(TweenMax.to(map.camera.position,.5,{x: 95, y: 23, z: 1}))
-            tlmax.add(TweenMax.to(map.camera.position,.5,{ease: Back.easeOut, x: 1.4, y: -3, z: 31.7}))
-            tlmax.add(TweenMax.to(spotLight.position, 2, { x: 0, y: 0, z: 60 }))   
-            tlmax.add(TweenMax.to(camera.position, 1, { ease: Back.easeOut, x: 0, y: 0, z: 400 }),'-=2.3')       
+        tlmax.add(function () {
+            mapinit(function (map) {
+                tlmax.add(TweenMax.to(map.camera.position, .5, { x: 95, y: 23, z: 1 }))
+                tlmax.add(TweenMax.to(map.camera.position, .5, { ease: Back.easeOut, x: 1.4, y: -3, z: 31.7 }))
+                tlmax.add(TweenMax.to(spotLight.position, 2, { x: 0, y: 0, z: 60 }))
+                tlmax.add(TweenMax.to(camera.position, 1, { ease: Back.easeOut, x: 0, y: 0, z: 400 }), '-=2.3')
             })
-         },1.7)
-        
+        }, 1.7)
+
         // GSDevTools.create();
 
-        
+
     }
 
     function mapinit(cb) {
@@ -163,25 +182,20 @@
             });
         });
         map = new dtc.vis.Map3D(opt)
-        
+
         //设置锥形灯光
         spotLight = map.scene.children[3]
         spotLight.position.set(0, 0, 0);
         spotLight.intensity = .5;
         spotLight.decay = 2;
         spotLight.penumbra = .1;
-        
+
         //重置相机位置
         map.setCameraPosition({ x: 0, y: 0, z: -60 })
         console.log('...map')
-        if(cb)cb(map)
+        if (cb) cb(map)
 
-        setInterval(function () {
-            $(".debug").html('camera.position:' + JSON.stringify(camera.position)
-                + '<br>map.camera :'  + JSON.stringify(map.camera.position)
-                + '<br>map.areaGroup :' +   JSON.stringify(map.areaGroup.position)
-            )
-        }, 100)
+
     }
 </script>
 
